@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LinkedIn API Request Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    label { display: block; margin-top: 15px; }
+    input, select, button { margin-top: 5px; padding: 8px; width: 300px; }
+    #response, #requestUrl, #requestHeaders { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>LinkedIn API Request Form</h1>
+  <form id="apiForm">
+    <label for="token">Token:</label>
+    <input type="text" id="token" name="token" required>
+
+    <label for="accountIds">Account ID(s) (comma-separated, no spaces):</label>
+    <input type="text" id="accountIds" name="accountIds" required>
+
+    <label for="startDate">Start Date:</label>
+    <input type="date" id="startDate" name="startDate" required>
+
+    <label for="endDate">End Date (optional):</label>
+    <input type="date" id="endDate" name="endDate">
+
+    <label for="reportType">Report Type:</label>
+    <select id="reportType" name="reportType">
+      <option value="ADS_PERFORMANCE">ADS_PERFORMANCE</option>
+      <option value="ADS_PERFORMANCE_BY_GEO">ADS_PERFORMANCE_BY_GEO</option>
+    </select>
+
+    <label for="timeGranularity">Time Granularity:</label>
+    <select id="timeGranularity" name="timeGranularity">
+      <option value="ALL">ALL</option>
+      <option value="DAILY">DAILY</option>
+    </select>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="requestUrl"></div>
+  <div id="requestHeaders"></div>
+  <div id="response"></div>
+
+  <script>
+    document.getElementById('apiForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const token = document.getElementById('token').value;
+      const accountIds = document.getElementById('accountIds').value.split(',');
+      const startDate = new Date(document.getElementById('startDate').value);
+      const endDateInput = document.getElementById('endDate').value;
+      const reportType = document.getElementById('reportType').value;
+      const timeGranularity = document.getElementById('timeGranularity').value;
+
+      const accountParams = accountIds.map(id => `urn%3Ali%3AsponsoredAccount%3A${id}`).join(',');
+      const dateRange = `(start:(day:${startDate.getDate()},month:${startDate.getMonth()+1},year:${startDate.getFullYear()})` +
+        (endDateInput ? `,end:(day:${new Date(endDateInput).getDate()},month:${new Date(endDateInput).getMonth()+1},year:${new Date(endDateInput).getFullYear()}))` : ')');
+
+      const url = `https://api.linkedin.com/rest/asyncAnalyticsReport?q=accounts&accounts=List(${accountParams})&dateRange=${dateRange}&reportType=${reportType}&timeGranularity=${timeGranularity}`;
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Linkedin-version': '202507',
+        'X-Restli-Protocol-Version': '2.0.0',
+        'Cookie': 'lidc="b=TB25:s=T:r=T:a=T:p=T:g=4661:u=48:x=1:i=1755705544:t=1755760554:v=2:sig=AQFJepPHuqlyrx6z2jp9dWp3h8iaH5-_"; lidc="b=TB25:s=T:r=T:a=T:p=T:g=4661:u=48:x=1:i=1755705527:t=1755760554:v=2:sig=AQG0JJOp-V9DjPfYkGKx0sH-jb3nRfGR"; bcookie="v=2&amp;5e089d75-9edd-4a61-87c3-6b4e7aad511d"'
+      };
+
+      document.getElementById('requestUrl').textContent = `Request URL:
+${url}`;
+      document.getElementById('requestHeaders').textContent = `Request Headers:
+${JSON.stringify(headers, null, 2)}`;
+
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: headers
+        });
+
+        const data = await response.json();
+        document.getElementById('response').textContent = `API Response:
+${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        document.getElementById('response').textContent = 'Error: ' + error;
+      }
+    });
+  </script>
+</body>
+</html>
